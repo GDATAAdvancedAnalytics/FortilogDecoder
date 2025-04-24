@@ -6,8 +6,9 @@ Usually these FortiNet logfiles are named like elog/tlog.1706323123.log.gz or .z
 These kind of files are gz/z compressed. After decompression you should see a file partly readable beginning with 0xECCF or 0xAA01.
 
 ## Dependencies
-pip install zstandard
-
+```bash
+pip install zstandard lz4
+```
 ## Usage
 Decode single file, prints logs to stdout and errors/debug to fortilog_decoder.log:
 

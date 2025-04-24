@@ -20,7 +20,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "G DATA Advanced Analytics"
 __date__ = "2024/08/28"
-__version__ = "1.2"
+__version__ = "1.3"
 
 
 import lz4.block
@@ -81,12 +81,14 @@ def process_file(sourcefile,outstream):
             s = gzip.open(sourcefile)
         elif sourcefile.endswith(".zst"):
             s = zstd.open(sourcefile,"rb",dctx=DCTX)
+        elif sourcefile.endswith(".log"):
+            s = open(sourcefile,mode="rb")
         else:
             raise Exception()
         decode_llogv5(s,sourcefile,outstream)
         s.close()
     except Exception as e:
-        output_info(f"Skipped {sourcefile} - failed to open file, not a gz/zst file?",outstream,False)
+        output_info(f"Skipped {sourcefile} - failed to open file, not a gz/zst/log file?",outstream,False)
 
 
 def decode_llogv5(instream,sourcefile,outstream):
@@ -125,6 +127,9 @@ def decode_llogv5(instream,sourcefile,outstream):
             ldecompressed = int.from_bytes(head[10:12],"big")
             lascii = ldevid+ldevname+lvdom
             body = instream.read(lascii+lentrycounts+lsomething+lcompressed)
+            devid = body[0:ldevid].decode("utf-8")
+            devname = body[ldevid:ldevid+ldevname].decode("utf-8")
+            vdom = body[ldevid+ldevname:ldevid+ldevname+lvdom].decode("utf-8")
             compressed_from = lascii+lentrycounts+lsomething
             entrieslengths = body[lascii:lascii+lentrycounts]
             compressed_to = compressed_from + lcompressed
@@ -136,14 +141,14 @@ def decode_llogv5(instream,sourcefile,outstream):
                     pointer = 0
                     for no in range(0,lentrycounts,2):
                         l = int.from_bytes(entrieslengths[no:no+2],"big")
-                        entries.append(decompressed[pointer:pointer+l])
+                        entries.append(f'devid="{devid}" devname="{devname}" vdom="{vdom}" '.encode() + decompressed[pointer:pointer+l])
                         pointer += l
                 elif entrycount == 1:
-                    entries.append(decompressed)
+                    entries.append(f'devid="{devid}" devname="{devname}" vdom="{vdom}" '.encode() + decompressed)
                 logentries+=len(entries)
                 output_logs(outstream,entries)
             except Exception as e:
-                output_info(f"Error: Skipped entry at offset {file_ptr_pos} in {instream.name} - LZ4 decompression failed",outstream,False)
+                output_info(f"Error: Skipped entry at offset {file_ptr_pos} in {instream.name} - LZ4 decompression failed {str(e)}",outstream,False)
                 continue
             #2nd variable part, skip
             head2 = instream.read(2)

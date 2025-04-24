@@ -9,6 +9,10 @@ These kind of files are gz/z compressed. After decompression you should see a fi
 ```bash
 pip install zstandard lz4
 ```
+## Changelog
+- v1.2: Initial public release
+- v1.3: Added support for encoded .log files (extracted .gz/.zst) eg. recovered through disk forensics (thx to [0xThiebaut](https://github.com/0xThiebaut))
+
 ## Usage
 Decode single file, prints logs to stdout and errors/debug to fortilog_decoder.log:
 

@@ -35,7 +35,7 @@ debug = False
 gz_output_file = False #if the target file should be gz compressed
 
 
-magic = b'\xEC\xCF'
+magic = [b'\xEC\xCF', b'\xEC\xDE']
 tlc_magic = b'\xAA\x01'
 tlc_fields = ["","devid","devname","vdom","devtype","logtype","tmzone","fazid","srcip","unused?","unused?","num-logs","unzip-len","incr-zip","unzip-len-p","prefix","zbuf","logs"]
 
@@ -88,7 +88,7 @@ def process_file(sourcefile,outstream):
         decode_llogv5(s,sourcefile,outstream)
         s.close()
     except Exception as e:
-        output_info(f"Skipped {sourcefile} - failed to open file, not a gz/zst/log file?",outstream,False)
+        output_info(f"Skipped {sourcefile} - failed to open file, not a gz/zst/log file, error: {e}?",outstream,False)
 
 
 def decode_llogv5(instream,sourcefile,outstream):
@@ -102,7 +102,7 @@ def decode_llogv5(instream,sourcefile,outstream):
         file_ptr_pos = instream.tell()
         logtype = instream.read(2)
 
-        if logtype == magic:
+        if logtype in magic:
             '''
             Each entry holds some additional data which is ignored. You may want to use these:
             In the header:
@@ -119,21 +119,27 @@ def decode_llogv5(instream,sourcefile,outstream):
             ldevid = head[3]
             ldevname = head[4]
             lvdom = head[5]
+            tz_str = None
             entrycount = int.from_bytes(head[6:8],"big")
             output_info(f"Entry holds {entrycount} logs",outstream,True)
             lentrycounts = entrycount * 2 
             lsomething = lentrycounts if flag else 0 #the twice thing, eg 8 zero padding bytes if flag true
             lcompressed = int.from_bytes(head[8:10],"big")
             ldecompressed = int.from_bytes(head[10:12],"big")
+            tz_len = 0
+            if logtype == b'\xEC\xDE':
+                _ = instream.read(10)
+                tz_len = int.from_bytes(instream.read(1), "big")
             lascii = ldevid+ldevname+lvdom
-            body = instream.read(lascii+lentrycounts+lsomething+lcompressed)
+            body = instream.read(lascii+lentrycounts+lsomething)
             devid = body[0:ldevid].decode("utf-8")
             devname = body[ldevid:ldevid+ldevname].decode("utf-8")
             vdom = body[ldevid+ldevname:ldevid+ldevname+lvdom].decode("utf-8")
             compressed_from = lascii+lentrycounts+lsomething
             entrieslengths = body[lascii:lascii+lentrycounts]
-            compressed_to = compressed_from + lcompressed
-            compressed = body[compressed_from:compressed_to]
+            if logtype == b'\xEC\xDE' and tz_len:
+                tz_str = instream.read(tz_len).decode('utf-8', errors="backslashreplace")
+            compressed = instream.read(lcompressed)
             try:
                 decompressed = lz4.block.decompress(compressed,ldecompressed+1)
                 entries = []

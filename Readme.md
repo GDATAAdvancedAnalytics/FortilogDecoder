@@ -3,7 +3,7 @@ Script to decode FortiNet logfiles as described in our blog post at https://cybe
 
 Usually these FortiNet logfiles are named like elog/tlog.1706323123.log.gz or .zst
 
-These kind of files are gz/z compressed. After decompression you should see a file partly readable beginning with 0xECCF or 0xAA01.
+These kind of files are gz/z compressed. After decompression you should see a file partly readable beginning with 0xECCF/0xECDE or 0xAA01.
 
 ## Dependencies
 ```bash
@@ -12,6 +12,7 @@ pip install zstandard lz4
 ## Changelog
 - v1.2: Initial public release
 - v1.3: Added support for encoded .log files (extracted .gz/.zst) eg. recovered through disk forensics (thx to [0xThiebaut](https://github.com/0xThiebaut))
+- v1.4: Added support for llogv5 formate (Magic 0xECDE) (thx to [william-billaud](https://github.com/william-billaud)
 
 ## Usage
 Decode single file, prints logs to stdout and errors/debug to fortilog_decoder.log:

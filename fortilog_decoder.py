@@ -18,9 +18,9 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 
 """
 
-__author__ = "G DATA Advanced Analytics"
-__date__ = "2024/08/28"
-__version__ = "1.3"
+__author__ = "G DATA Advanced Analytics and Contributors"
+__date__ = "2025/12/12"
+__version__ = "1.4"
 
 
 import lz4.block
